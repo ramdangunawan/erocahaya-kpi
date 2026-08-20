@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>ERO CAHAYA KPI — Laporan Kinerja</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f0eb;--surface:#fff;--surface2:#faf7f3;--border:#e6dfd6;--text:#1c1714;--dim:#6b5e52;--muted:#a89b8e;--ink:#1c1714;--accent:#c45828;--accent2:#2a6b4f;--red:#c43328;--blue:#2563eb;--teal:#1a7a6b;--amber:#a66b1a;--purple:#7040b0}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased}
+.app{max-width:500px;margin:0 auto;padding:14px 14px 90px;min-height:100vh}
+.header{display:flex;align-items:center;gap:10px;padding:10px 4px 14px}
+.logo-icon{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:900}
+.brand{flex:1}
+.brand-name{font-size:18px;font-weight:800;letter-spacing:-.5px}
+.brand-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:2px}
+.user-badge{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(28,23,20,.05)}
+.card-dark{background:var(--ink);color:#e8e0d8;border-radius:14px;padding:20px 18px;margin-bottom:16px}
+.card-dark .overtitle{font-size:11px;color:#8a7d72;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.card-dark .title{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.card-dark .sub{font-size:13px;color:#b8ada2;margin-top:4px}
+.label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;display:block;margin-bottom:6px}
+.input{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:15px;box-sizing:border-box}
+input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type="number"]{-moz-appearance:textfield;appearance:textfield}
+.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(196,88,40,.15)}
+.input-num{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;text-align:right}
+.btn{width:100%;padding:14px 20px;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-green{background:var(--accent2);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-sec{background:var(--surface2);color:var(--dim);border:1px solid var(--border)}
+.btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+.btn-sm{padding:9px 14px;font-size:13px;width:auto}
+.alert{padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:14px;animation:slideIn .3s}
+.alert-err{background:#fceae9;color:var(--red);border:1px solid #f5c6c3}
+.alert-ok{background:#e8f3ed;color:var(--accent2);border:1px solid #c6e4d4}
+.alert-info{background:#eff4ff;color:var(--blue);border:1px solid #c6d9f5}
+.alert-warn{background:#fdf3e4;color:var(--amber);border:1px solid #e8d4a8}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.loading{display:inline-block;width:18px;height:18px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.field{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.field-hl{background:#faf7f0;border-color:#e8dcc8}
+.field-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.field-icon{font-size:20px}
+.field-info{flex:1}
+.field-label{font-size:13px;font-weight:700;color:var(--text)}
+.field-sub{font-size:11px;color:var(--muted)}
+.field-input-wrap{display:flex;align-items:center;gap:8px}
+.field-suffix{font-size:12px;color:var(--muted);font-weight:700;min-width:56px;text-align:left}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.section-title{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.dot{width:8px;height:8px;border-radius:3px;display:inline-block}
+.link-btn{background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;padding:4px 8px;text-decoration:underline}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:14px}
+.tab{flex:1;padding:11px;background:none;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;position:relative}
+.tab.active{background:var(--accent);color:#fff}
+.tab-badge{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px;font-family:'JetBrains Mono',monospace}
+.page-form{display:none}
+.page-form.active{display:block}
+.perf-card{background:linear-gradient(135deg,#1c1714 0%,#3d342b 100%);color:#e8e0d8;border-radius:14px;padding:16px;margin-bottom:14px}
+.perf-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.1)}
+.perf-title{font-size:10px;color:#8a7d72;text-transform:uppercase;letter-spacing:2px;font-weight:700}
+.perf-date{font-size:10px;color:#c5baa9;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-weight:700}
+.perf-main-value{text-align:center;margin-bottom:14px}
+.perf-main-label{font-size:10px;color:#8a7d72;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:4px}
+.perf-main-num{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:34px;color:#7dd9a9;letter-spacing:-.5px;line-height:1}
+.perf-grade{font-size:12px;color:#c5baa9;margin-top:6px;font-weight:600}
+.perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.perf-stat{background:rgba(255,255,255,.06);padding:10px;border-radius:8px;text-align:center}
+.perf-stat-label{font-size:9px;color:#8a7d72;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:2px}
+.perf-stat-val{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:16px;color:#e8e0d8}
+.perf-extra{background:rgba(255,200,80,.12);padding:8px 10px;border-radius:8px;font-size:11px;color:#ffd89b;margin-top:10px;line-height:1.5;border-left:2px solid #ffd89b}
+.kpi-row{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.kpi-row-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px}
+.kpi-name{font-size:14px;font-weight:700;line-height:1.3}
+.kpi-kode{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-weight:700;margin-top:2px}
+.kpi-bobot{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--dim);flex-shrink:0}
+.kpi-target{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)}
+.kpi-target b{font-family:'JetBrains Mono',monospace;color:var(--dim)}
+.kpi-auto{background:#eff4ff;border:1px solid #c6d9f5;color:var(--blue);padding:8px 10px;border-radius:8px;font-size:11px;font-weight:600}
+.arah-turun{color:var(--amber)}
+.hist-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.hist-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px}
+.hist-name{font-weight:700;font-size:14px}
+.hist-meta{font-size:11px;color:var(--muted)}
+.hist-amount{font-weight:800;font-size:16px;color:var(--accent2);font-family:'JetBrains Mono',monospace}
+.status-pill{font-size:10px;font-weight:800;padding:3px 9px;border-radius:5px;letter-spacing:.5px;text-transform:uppercase}
+.status-pending{background:#fdf3e4;color:var(--amber)}
+.status-approved{background:#e8f3ed;color:var(--accent2)}
+.status-rejected{background:#fceae9;color:var(--red)}
+.val-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.val-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.val-nama{font-weight:800;font-size:15px}
+.val-divisi{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.val-nilai{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:18px;color:var(--accent)}
+.val-kpi{font-size:13px;color:var(--dim);margin-bottom:4px}
+.val-note{background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--dim);margin:8px 0;line-height:1.5}
+.val-actions{display:flex;gap:8px;margin-top:10px}
+.val-actions .btn{flex:1;padding:11px;font-size:13px}
+.issue-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;border-left:3px solid var(--amber)}
+.issue-card.mendesak{border-left-color:var(--red)}
+.issue-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.issue-text{font-size:14px;font-weight:600;line-height:1.4}
+.issue-umur{font-size:10px;font-weight:800;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:5px;background:#fdf3e4;color:var(--amber);flex-shrink:0}
+.issue-umur.mendesak{background:#fceae9;color:var(--red)}
+.issue-meta{font-size:11px;color:var(--muted)}
+.empty{text-align:center;padding:26px 10px;color:var(--muted);font-size:13px}
+.empty-icon{font-size:32px;display:block;margin-bottom:8px;opacity:.5}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div id="page-setup" style="display:none">
+  <div class="card-dark">
+    <div class="overtitle">Setup Pertama Kali</div>
+    <div class="title">Masukkan URL Sistem</div>
+    <div class="sub">Dari admin / owner</div>
+  </div>
+  <div class="card">
+    <div class="alert alert-info" style="margin-bottom:18px">📋 Anda perlu memasukkan <b>URL Google Apps Script</b> dari admin.</div>
+    <label class="label">URL Google Apps Script</label>
+    <input id="setup-url" class="input" placeholder="https://script.google.com/macros/s/.../exec" style="font-size:12px;font-family:'JetBrains Mono',monospace">
+    <div style="height:14px"></div>
+    <div class="alert alert-err" id="setup-err" style="display:none"></div>
+    <button class="btn btn-primary" id="setup-btn" onclick="saveUrl()">Simpan &amp; Lanjutkan</button>
+  </div>
+</div>
+
+<div id="page-login" style="display:none">
+  <div class="header">
+    <div class="logo-icon">E</div>
+    <div class="brand">
+      <div class="brand-name">ERO CAHAYA</div>
+      <div class="brand-sub">KPI Karyawan</div>
+    </div>
+  </div>
+  <div class="card-dark">
+    <div class="overtitle">Selamat Datang</div>
+    <div class="title">Login Karyawan</div>
+    <div class="sub">Masuk dengan NIP &amp; PIN Anda</div>
+  </div>
+  <div class="card">
+    <div class="alert alert-err" id="login-err" style="display:none"></div>
+    <label class="label">NIP</label>
+    <input id="login-nip" class="input" placeholder="Contoh: BI20011" autocomplete="off" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700">
+    <div style="height:14px"></div>
+    <label class="label">PIN</label>
+    <input id="login-pin" class="input" type="tel" maxlength="6" placeholder="•••" autocomplete="off" style="letter-spacing:8px;font-size:20px;text-align:center;font-family:'JetBrains Mono',monospace">
+    <div style="height:18px"></div>
+    <button class="btn btn-primary" id="login-btn" onclick="login()">Masuk</button>
+    <div style="height:12px"></div>
+    <button class="link-btn" onclick="resetUrl()" style="width:100%;text-align:center">Ganti URL Sistem</button>
+  </div>
+</div>
+
+<div id="page-main" style="display:none">
+  <div class="header">
+    <div class="logo-icon">E</div>
+    <div class="brand">
+      <div class="brand-name">ERO CAHAYA</div>
+      <div class="brand-sub" id="divisi-name">KPI Karyawan</div>
+    </div>
+    <div class="user-badge" id="user-badge"></div>
+  </div>
+
+  <div class="perf-card">
+    <div class="perf-header">
+      <div class="perf-title">📊 Kinerja Saya Bulan Ini</div>
+      <div class="perf-date" id="perf-periode"></div>
+    </div>
+    <div class="perf-main-value">
+      <div class="perf-main-label">Nilai Sementara</div>
+      <div class="perf-main-num" id="perf-nilai">—</div>
+      <div class="perf-grade" id="perf-grade">Belum ada data</div>
+    </div>
+    <div class="perf-grid">
+      <div class="perf-stat"><div class="perf-stat-label">KPI Aktif</div><div class="perf-stat-val" id="perf-jumlah">0</div></div>
+      <div class="perf-stat"><div class="perf-stat-label">Lapor Hari Ini</div><div class="perf-stat-val" id="perf-hariini">0</div></div>
+    </div>
+    <div id="perf-extra" class="perf-extra" style="display:none"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-lapor" onclick="switchTab('lapor')">📝 Lapor</button>
+    <button class="tab" id="tab-validasi" onclick="switchTab('validasi')" style="display:none">✅ Validasi <span class="tab-badge" id="badge-validasi" style="display:none">0</span></button>
+    <button class="tab" id="tab-kendala" onclick="switchTab('kendala')">⚠️ Kendala</button>
+  </div>
+
+  <!-- ═══ FORM LAPORAN KPI ═══ -->
+  <div id="form-lapor" class="page-form active">
+    <div class="card">
+      <div class="alert alert-err" id="input-err" style="display:none"></div>
+      <div class="alert alert-ok" id="input-ok" style="display:none"></div>
+      <label class="label">Tanggal Kerja</label>
+      <input type="date" id="input-date" class="input" onchange="loadRiwayat()">
+      <div style="height:16px"></div>
+      <div class="section-title"><span class="dot" style="background:var(--accent)"></span>Hasil Kerja Hari Ini</div>
+      <div id="kpi-list"></div>
+      <div style="height:6px"></div>
+      <label class="label">Catatan (opsional)</label>
+      <input id="input-note" class="input" placeholder="Contoh: mesin Rhino tidak jalan" autocomplete="off">
+      <div style="height:16px"></div>
+      <button class="btn btn-primary" id="submit-btn" onclick="kirimLaporan()">✓ Kirim Laporan</button>
+    </div>
+
+    <div class="section-title"><span class="dot" style="background:var(--accent2)"></span>Laporan Tanggal Ini</div>
+    <div id="riwayat-list"></div>
+  </div>
+
+  <!-- ═══ VALIDASI KOORDINATOR ═══ -->
+  <div id="form-validasi" class="page-form">
+    <div class="alert alert-info">Anda hanya melihat laporan tim Anda. Laporan Anda sendiri divalidasi atasan Anda.</div>
+    <div class="alert alert-err" id="val-err" style="display:none"></div>
+    <div class="alert alert-ok" id="val-ok" style="display:none"></div>
+    <div id="validasi-list"></div>
+  </div>
+
+  <!-- ═══ KENDALA ═══ -->
+  <div id="form-kendala" class="page-form">
+    <div class="card">
+      <div class="alert alert-err" id="issue-err" style="display:none"></div>
+      <div class="alert alert-ok" id="issue-ok" style="display:none"></div>
+      <div class="section-title"><span class="dot" style="background:var(--amber)"></span>Laporkan Kendala</div>
+      <label class="label">Apa kendalanya?</label>
+      <input id="issue-text" class="input" placeholder="Contoh: pipa blower mesin Rhino bocor" autocomplete="off">
+      <div style="height:14px"></div>
+      <label class="label">Butuh ditangani siapa (opsional)</label>
+      <input id="issue-pic" class="input" placeholder="Contoh: maintenance / owner" autocomplete="off">
+      <div style="height:16px"></div>
+      <button class="btn btn-primary" id="issue-btn" onclick="kirimKendala()">Kirim Kendala</button>
+      <div style="height:10px"></div>
+      <div class="alert alert-info" style="margin:0">Kendala di luar kendali Anda tidak akan menurunkan nilai KPI. Melapor tidak merugikan Anda.</div>
+    </div>
+
+    <div class="section-title"><span class="dot" style="background:var(--red)"></span>Kendala Belum Ditangani</div>
+    <div id="kendala-list"></div>
+  </div>
+
+  <div style="height:14px"></div>
+  <button class="btn btn-sec" onclick="logout()">Keluar</button>
+</div>
+
+</div>
+<script>
+const LS_URL='eck_kpi_url';const LS_SESSION='eck_kpi_session';
+let API_URL='';let session=null;let MY_KPI=[];let submitId=null;
+
+const fmtNum=n=>new Intl.NumberFormat('id-ID').format(n);
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const periodeStr=()=>todayStr().slice(0,7);
+
+function newSubmitId(){
+  return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():(String(Date.now())+'-'+Math.random().toString(36).slice(2));
+}
+function show(id){['page-setup','page-login','page-main'].forEach(p=>document.getElementById(p).style.display='none');document.getElementById(id).style.display='block';window.scrollTo(0,0);}
+function showA(id,msg,type='err'){const e=document.getElementById(id);e.className='alert alert-'+type;e.innerHTML=msg;e.style.display='block';if(type!=='warn')setTimeout(()=>e.style.display='none',6000);}
+
+async function apiCall(params){
+  // Nama parameter 'token' polos, disepakati dengan Tim RFG agar seragam lintas sistem.
+  if(session&&session.token&&!params.token)params.token=session.token;
+  const url=new URL(API_URL);Object.keys(params).forEach(k=>url.searchParams.append(k,params[k]));
+  try{
+    const r=await fetch(url.toString(),{method:'GET',redirect:'follow'});
+    const j=await r.json();
+    if(j&&j.error&&/[Ss]esi Anda sudah berakhir/.test(j.error)){logoutPaksa();}
+    return j;
+  }catch(err){return{ok:false,error:'Gagal terhubung ke server: '+err.message};}
+}
+function logoutPaksa(){
+  localStorage.removeItem(LS_SESSION);session=null;MY_KPI=[];
+  show('page-login');
+  showA('login-err','Sesi Anda sudah berakhir. Silakan masuk kembali.');
+}
+
+function saveUrl(){
+  const url=document.getElementById('setup-url').value.trim();
+  if(!url){showA('setup-err','URL wajib diisi');return;}
+  if(!url.startsWith('https://script.google.com/')||!url.endsWith('/exec')){showA('setup-err','URL tidak valid');return;}
+  localStorage.setItem(LS_URL,url);API_URL=url;show('page-login');
+}
+function resetUrl(){if(confirm('Ganti URL sistem?')){localStorage.removeItem(LS_URL);localStorage.removeItem(LS_SESSION);location.reload();}}
+
+async function login(){
+  const nip=document.getElementById('login-nip').value.trim().toUpperCase();
+  const pin=document.getElementById('login-pin').value.trim();
+  if(!nip||!pin){showA('login-err','NIP dan PIN wajib diisi');return;}
+  const btn=document.getElementById('login-btn');btn.innerHTML='<span class="loading"></span> Memeriksa...';btn.disabled=true;
+  const res=await apiCall({action:'login',nip,pin});
+  btn.innerHTML='Masuk';btn.disabled=false;
+  if(!res.ok){showA('login-err',res.error||'Login gagal');return;}
+  session={token:res.token,expiresAt:res.expiresAt,employee:res.employee,
+           role:res.role,atasanNama:res.atasanNama,loginAt:new Date().toISOString()};
+  MY_KPI=res.kpi||[];
+  localStorage.setItem(LS_SESSION,JSON.stringify({session,MY_KPI}));
+  goToMain();
+}
+async function logout(){
+  if(!confirm('Keluar sekarang?'))return;
+  if(session&&session.token)await apiCall({action:'logout'});
+  localStorage.removeItem(LS_SESSION);session=null;MY_KPI=[];
+  show('page-login');
+  document.getElementById('login-nip').value='';document.getElementById('login-pin').value='';
+}
+
+function goToMain(){
+  const e=session.employee;
+  document.getElementById('user-badge').innerHTML='👤 <b>'+(e.panggilan||e.namaLengkap)+'</b>';
+  document.getElementById('divisi-name').textContent=e.penempatanAktif||e.divisiBaku||'KPI Karyawan';
+  document.getElementById('perf-periode').textContent=periodeStr();
+  document.getElementById('input-date').value=todayStr();
+  submitId=newSubmitId();
+
+  const bolehValidasi=['koordinator','owner','hr','finance'].indexOf((session.role||'').toLowerCase())!==-1;
+  document.getElementById('tab-validasi').style.display=bolehValidasi?'flex':'none';
+
+  renderKpiList();
+  show('page-main');
+  loadKinerja();
+  loadRiwayat();
+  loadKendala();
+  if(bolehValidasi)loadValidasi();
+}
+
+function switchTab(t){
+  ['lapor','validasi','kendala'].forEach(x=>{
+    document.getElementById('tab-'+x).classList.toggle('active',x===t);
+    document.getElementById('form-'+x).classList.toggle('active',x===t);
+  });
+  if(t==='validasi')loadValidasi();
+  if(t==='kendala')loadKendala();
+}
+
+// ═══ FORM KPI ═══
+function renderKpiList(){
+  const box=document.getElementById('kpi-list');
+  if(!MY_KPI.length){
+    box.innerHTML='<div class="empty"><span class="empty-icon">📋</span>Belum ada KPI yang ditetapkan untuk Anda bulan ini.<br>Hubungi atasan atau HR.</div>';
+    document.getElementById('submit-btn').disabled=true;
+    return;
+  }
+  const manual=MY_KPI.filter(k=>String(k.sumber||'manual').indexOf('auto:')!==0);
+  const otomatis=MY_KPI.filter(k=>String(k.sumber||'').indexOf('auto:')===0);
+  let html='';
+  manual.forEach(k=>{
+    const turun=String(k.arah).toLowerCase()==='turun';
+    html+='<div class="kpi-row">'
+      +'<div class="kpi-row-head"><div><div class="kpi-name">'+k.namaKpi+'</div><div class="kpi-kode">'+k.kode+'</div></div>'
+      +'<div class="kpi-bobot">'+Math.round(k.bobot*100)+'%</div></div>'
+      +'<div class="field-input-wrap">'
+      +'<input type="number" step="any" min="0" class="input input-num" id="kpi-'+k.kpiId+'" placeholder="0" onfocus="this.select()">'
+      +'<span class="field-suffix">'+(k.satuan||'')+'</span></div>'
+      +'<div class="kpi-target"><span>Target bulan ini</span><b>'+fmtNum(k.target)+' '+(k.satuan||'')+'</b></div>'
+      +(turun?'<div class="kpi-target" style="border:none;padding-top:4px"><span class="arah-turun">↓ Makin kecil makin baik</span><span></span></div>':'')
+      +'</div>';
+  });
+  if(otomatis.length){
+    html+='<div class="kpi-auto">🔗 '+otomatis.length+' KPI Anda diambil otomatis dari sistem penjualan — tidak perlu diisi manual: '
+      +otomatis.map(k=>k.namaKpi).join(', ')+'</div>';
+  }
+  box.innerHTML=html;
+  document.getElementById('submit-btn').disabled=manual.length===0;
+}
+
+async function kirimLaporan(){
+  const date=document.getElementById('input-date').value;
+  if(!date){showA('input-err','Tanggal wajib diisi');return;}
+  const note=document.getElementById('input-note').value.trim();
+
+  const isian=[];
+  MY_KPI.filter(k=>String(k.sumber||'manual').indexOf('auto:')!==0).forEach(k=>{
+    const el=document.getElementById('kpi-'+k.kpiId);
+    if(el&&el.value!==''){isian.push({kpiId:k.kpiId,nama:k.namaKpi,value:Number(el.value),satuan:k.satuan});}
+  });
+  if(!isian.length){showA('input-err','Isi minimal satu hasil kerja');return;}
+
+  let msg='Kirim laporan?\n\nTanggal: '+date+'\n\n';
+  isian.forEach(i=>{msg+='• '+i.nama+': '+fmtNum(i.value)+' '+(i.satuan||'')+'\n';});
+  if(!confirm(msg))return;
+
+  const btn=document.getElementById('submit-btn');btn.innerHTML='<span class="loading"></span> Mengirim...';btn.disabled=true;
+
+  let berhasil=0;const gagal=[];const peringatan=[];
+  for(const i of isian){
+    // nip TIDAK dikirim — server menentukan identitas dari token
+    const res=await apiCall({action:'addReport',submitId:submitId+'-'+i.kpiId,
+      date,kpiId:i.kpiId,value:i.value,note});
+    if(res.ok){berhasil++;if(res.warning)peringatan.push(res.warning);}
+    else gagal.push(i.nama+': '+(res.error||'gagal'));
+  }
+
+  btn.innerHTML='✓ Kirim Laporan';btn.disabled=false;
+  submitId=newSubmitId();
+
+  if(gagal.length){showA('input-err',berhasil+' tersimpan, '+gagal.length+' gagal:<br>'+gagal.join('<br>'));}
+  else{
+    const pesan='Laporan terkirim, menunggu validasi '+(session.atasanNama||'atasan')+'. 🎉';
+    if(peringatan.length)showA('input-ok',pesan+'<br><br>⚠️ '+peringatan[0],'warn');
+    else showA('input-ok',pesan,'ok');
+    MY_KPI.forEach(k=>{const el=document.getElementById('kpi-'+k.kpiId);if(el)el.value='';});
+    document.getElementById('input-note').value='';
+  }
+  loadRiwayat();loadKinerja();
+}
+
+// ═══ KINERJA SAYA ═══
+async function loadKinerja(){
+  const res=await apiCall({action:'getDashboard',periode:periodeStr(),date:todayStr()});
+  if(!res.ok)return;
+  const saya=(res.karyawan||[]).find(k=>String(k.nip)===String(session.employee.nip));
+  document.getElementById('perf-jumlah').textContent=MY_KPI.length;
+  if(saya){
+    document.getElementById('perf-nilai').textContent=saya.nilaiAkhir.toFixed(2);
+    document.getElementById('perf-grade').textContent='Grade '+saya.grade+' — '+saya.predikat;
+  }
+  const extra=document.getElementById('perf-extra');
+  const kendalaSaya=(res.kendala||[]).filter(k=>String(k.reportedBy)===String(session.employee.nip)&&k.mendesak);
+  if(kendalaSaya.length){
+    extra.style.display='block';
+    extra.innerHTML='⚠️ '+kendalaSaya.length+' kendala Anda sudah lebih dari 3 hari belum ditangani. KPI terkait tidak dihitung selama kendala masih terbuka.';
+  }else{extra.style.display='none';}
+}
+
+// ═══ RIWAYAT ═══
+async function loadRiwayat(){
+  const date=document.getElementById('input-date').value||todayStr();
+  const box=document.getElementById('riwayat-list');
+  box.innerHTML='<div class="empty">Memuat...</div>';
+  // mode 'saya' disaring di server, bukan di browser.
+  // Sebelumnya seluruh laporan pending semua karyawan ikut terkirim ke setiap orang.
+  const res=await apiCall({action:'getPending',mode:'saya'});
+  const semua=res.ok?(res.pending||[]):[];
+  const punyaSaya=semua.filter(r=>r.date===date);
+  document.getElementById('perf-hariini').textContent=punyaSaya.length;
+  if(!punyaSaya.length){
+    box.innerHTML='<div class="empty"><span class="empty-icon">📭</span>Belum ada laporan menunggu validasi untuk tanggal ini.</div>';
+    return;
+  }
+  box.innerHTML=punyaSaya.map(r=>
+    '<div class="hist-card"><div class="hist-top">'
+    +'<div><div class="hist-name">'+r.kpi+'</div><div class="hist-meta">'+r.date+'</div></div>'
+    +'<div style="text-align:right"><div class="hist-amount">'+fmtNum(r.value)+' '+(r.satuan||'')+'</div>'
+    +'<span class="status-pill status-pending">Menunggu</span></div></div>'
+    +(r.note?'<div class="val-note">'+r.note+'</div>':'')
+    +'</div>').join('');
+}
+
+// ═══ VALIDASI ═══
+async function loadValidasi(){
+  const box=document.getElementById('validasi-list');
+  box.innerHTML='<div class="empty">Memuat...</div>';
+  const res=await apiCall({action:'getPending'});
+  if(!res.ok){box.innerHTML='<div class="empty">'+(res.error||'Gagal memuat')+'</div>';return;}
+  const list=res.pending||[];
+  const badge=document.getElementById('badge-validasi');
+  badge.textContent=list.length;badge.style.display=list.length?'inline-block':'none';
+  if(!list.length){
+    box.innerHTML='<div class="empty"><span class="empty-icon">✅</span>Tidak ada laporan menunggu validasi.</div>';
+    return;
+  }
+  box.innerHTML=list.map(r=>
+    '<div class="val-card" id="val-'+r.id+'">'
+    +'<div class="val-head"><div><div class="val-nama">'+r.nama+'</div><div class="val-divisi">'+(r.divisi||'')+' · '+r.date+'</div>'
+    +(r.susulan?'<div class="issue-umur mendesak" style="display:inline-block;margin-top:5px">Susulan '+r.umurHari+' hari</div>':'')
+    +'</div>'
+    +'<div class="val-nilai">'+fmtNum(r.value)+' <span style="font-size:11px;color:var(--muted)">'+(r.satuan||'')+'</span></div></div>'
+    +'<div class="val-kpi">'+r.kpi+'</div>'
+    +(r.note?'<div class="val-note">💬 '+r.note+'</div>':'')
+    +'<div class="val-actions">'
+    +'<button class="btn btn-green" onclick="setujui('+r.id+')">✓ Setujui</button>'
+    +'<button class="btn btn-red" onclick="tolak('+r.id+')">✕ Tolak</button>'
+    +'</div></div>').join('');
+}
+
+async function setujui(id){
+  const res=await apiCall({action:'approveReport',id});
+  if(!res.ok){showA('val-err',res.error||'Gagal menyetujui');return;}
+  showA('val-ok','Laporan disetujui','ok');
+  const el=document.getElementById('val-'+id);if(el)el.remove();
+  loadValidasi();
+}
+async function tolak(id){
+  const reason=prompt('Alasan menolak laporan ini?');
+  if(!reason||!reason.trim())return;
+  const res=await apiCall({action:'rejectReport',id,reason:reason.trim()});
+  if(!res.ok){showA('val-err',res.error||'Gagal menolak');return;}
+  showA('val-ok','Laporan ditolak','ok');
+  const el=document.getElementById('val-'+id);if(el)el.remove();
+  loadValidasi();
+}
+
+// ═══ KENDALA ═══
+async function kirimKendala(){
+  const issue=document.getElementById('issue-text').value.trim();
+  if(!issue){showA('issue-err','Isi kendala wajib diisi');return;}
+  const btn=document.getElementById('issue-btn');btn.innerHTML='<span class="loading"></span> Mengirim...';btn.disabled=true;
+  const res=await apiCall({action:'addIssue',issue,
+    assignedTo:document.getElementById('issue-pic').value.trim()});
+  btn.innerHTML='Kirim Kendala';btn.disabled=false;
+  if(!res.ok){showA('issue-err',res.error||'Gagal mengirim');return;}
+  showA('issue-ok','Kendala tercatat. Terima kasih sudah melapor.','ok');
+  document.getElementById('issue-text').value='';
+  document.getElementById('issue-pic').value='';
+  loadKendala();
+}
+
+async function loadKendala(){
+  const box=document.getElementById('kendala-list');
+  box.innerHTML='<div class="empty">Memuat...</div>';
+  const res=await apiCall({action:'getIssues',status:'open'});
+  if(!res.ok){box.innerHTML='<div class="empty">'+(res.error||'Gagal memuat')+'</div>';return;}
+  const list=res.issues||[];
+  if(!list.length){
+    box.innerHTML='<div class="empty"><span class="empty-icon">👍</span>Tidak ada kendala terbuka.</div>';
+    return;
+  }
+  box.innerHTML=list.map(i=>
+    '<div class="issue-card'+(i.mendesak?' mendesak':'')+'">'
+    +'<div class="issue-top"><div class="issue-text">'+i.issue+'</div>'
+    +'<div class="issue-umur'+(i.mendesak?' mendesak':'')+'">'+i.umurHari+' hari</div></div>'
+    +'<div class="issue-meta">'+(i.divisi||'')+' · dilaporkan '+i.dateOpened
+    +(i.assignedTo?' · perlu '+i.assignedTo:'')+'</div>'
+    +'</div>').join('');
+}
+
+// ═══ INIT ═══
+(function(){
+  const savedUrl=localStorage.getItem(LS_URL);
+  if(!savedUrl){show('page-setup');return;}
+  API_URL=savedUrl;
+  const saved=localStorage.getItem(LS_SESSION);
+  if(!saved){show('page-login');return;}
+  try{
+    const obj=JSON.parse(saved);
+    session=obj.session;MY_KPI=obj.MY_KPI||[];
+    if(!session||!session.employee){show('page-login');return;}
+    goToMain();
+  }catch(e){show('page-login');}
+})();
+</script>
+</body>
+</html>
