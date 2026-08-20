@@ -69,6 +69,14 @@ td{padding:11px 8px;border-top:1px solid var(--border)}
 .loading{display:inline-block;width:17px;height:17px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .scroll{overflow-x:auto}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:16px;max-width:420px}
+.tabbtn{flex:1;padding:11px;background:none;border:none;border-radius:8px;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer}
+.tabbtn.active{background:var(--accent);color:#fff}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:6px}
+.chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;display:inline-block}
+.chip-run{background:#d9f0e3;color:#1a6b42}
+.chip-done{background:#eee;color:#666}
+.chip-cancel{background:#fceae9;color:var(--red)}
 @media(max-width:640px){.wrap{padding:14px 12px 50px}.stat-val{font-size:21px}td,th{padding:9px 6px}}
 </style>
 </head>
@@ -130,6 +138,12 @@ td{padding:11px 8px;border-top:1px solid var(--border)}
     <button class="btn btn-sec" id="btn-muat" onclick="muat()">Muat Ulang</button>
   </div>
 
+  <div class="tabs">
+    <button class="tabbtn active" id="tb-kinerja" onclick="tab('kinerja')">📊 Kinerja</button>
+    <button class="tabbtn" id="tb-penempatan" onclick="tab('penempatan')">🔄 Penempatan</button>
+  </div>
+
+  <div id="view-kinerja">
   <div id="progress-note"></div>
 
   <div class="stats" id="stats"></div>
@@ -152,6 +166,33 @@ td{padding:11px 8px;border-top:1px solid var(--border)}
   <div class="card">
     <div class="sec-title"><span class="dot" style="background:var(--red)"></span>Kendala Belum Ditangani</div>
     <div id="list-kendala"></div>
+  </div>
+  </div>
+
+  <div id="view-penempatan" style="display:none">
+    <div class="alert alert-info">
+      Rolling minimal <b>3 hari</b> baru diperhitungkan. Target divisi asal otomatis berkurang sesuai porsi hari,
+      dan atasan di tempat penempatan ikut berwenang memvalidasi laporannya.
+    </div>
+    <div class="card">
+      <div class="sec-title"><span class="dot" style="background:var(--accent)"></span>Catat Penempatan Baru</div>
+      <div class="alert alert-err" id="pl-err" style="display:none"></div>
+      <div class="alert alert-info" id="pl-ok" style="display:none"></div>
+      <div class="formgrid">
+        <div><label class="label">Karyawan</label><select id="pl-nip" class="input" onchange="infoAsal()"></select></div>
+        <div><label class="label">Divisi Tujuan</label><select id="pl-divisi" class="input"></select></div>
+        <div><label class="label">Atasan Selama Rolling</label><select id="pl-atasan" class="input"></select></div>
+        <div><label class="label">Tanggal Mulai</label><input type="date" id="pl-mulai" class="input"></div>
+        <div><label class="label">Tanggal Selesai <span style="text-transform:none;font-weight:400">(boleh kosong)</span></label><input type="date" id="pl-selesai" class="input"></div>
+        <div><label class="label">Alasan</label><input id="pl-alasan" class="input" placeholder="Contoh: menggantikan Irul cuti"></div>
+      </div>
+      <div id="pl-info" style="font-size:12px;color:var(--dim);margin:10px 0"></div>
+      <button class="btn btn-primary" id="pl-btn" onclick="simpanPenempatan()">Simpan Penempatan</button>
+    </div>
+    <div class="card">
+      <div class="sec-title"><span class="dot" style="background:var(--blue)"></span>Riwayat Penempatan</div>
+      <div class="scroll" id="tbl-penempatan"></div>
+    </div>
   </div>
 </div>
 
@@ -221,6 +262,106 @@ function masuk(){
   document.getElementById('in-tanggal').value=hariIni();
   show('page-main');
   muat();
+  muatMaster();
+}
+
+let EMP=[], DIV=[];
+
+function tab(t){
+  ['kinerja','penempatan'].forEach(x=>{
+    document.getElementById('tb-'+x).classList.toggle('active',x===t);
+    document.getElementById('view-'+x).style.display=(x===t?'block':'none');
+  });
+  if(t==='penempatan')muatPenempatan();
+}
+
+async function muatMaster(){
+  const r=await api({action:'getEmployees'});
+  if(!r.ok)return;
+  EMP=(r.employees||[]).filter(e=>String(e.active).toUpperCase()!=='FALSE');
+  DIV=[...new Set(EMP.map(e=>e.divisiBaku).filter(Boolean))].sort();
+
+  const selN=document.getElementById('pl-nip');
+  selN.innerHTML='<option value="">— pilih karyawan —</option>'+
+    EMP.slice().sort((a,b)=>a.namaLengkap<b.namaLengkap?-1:1)
+       .map(e=>'<option value="'+e.nip+'">'+e.namaLengkap+' · '+e.divisiBaku+'</option>').join('');
+
+  document.getElementById('pl-divisi').innerHTML='<option value="">— pilih divisi —</option>'+
+    DIV.map(d=>'<option value="'+d+'">'+d+'</option>').join('');
+
+  document.getElementById('pl-atasan').innerHTML='<option value="">— tanpa atasan khusus —</option>'+
+    EMP.filter(e=>['koordinator','owner','hr','finance'].indexOf(String(e.role).toLowerCase())!==-1)
+       .map(e=>'<option value="'+e.nip+'">'+e.namaLengkap+' · '+e.divisiBaku+'</option>').join('');
+}
+
+function infoAsal(){
+  const nip=document.getElementById('pl-nip').value;
+  const e=EMP.find(x=>x.nip===nip);
+  document.getElementById('pl-info').innerHTML=e
+    ? 'Divisi asal <b>'+e.divisiBaku+'</b> · atasan tetap '+(e.atasanNip||'—')
+    : '';
+}
+
+async function simpanPenempatan(){
+  const nip=document.getElementById('pl-nip').value;
+  const divisi=document.getElementById('pl-divisi').value;
+  const mulai=document.getElementById('pl-mulai').value;
+  if(!nip||!divisi||!mulai){pErr('Karyawan, divisi tujuan, dan tanggal mulai wajib diisi');return;}
+
+  const b=document.getElementById('pl-btn');b.innerHTML='<span class="loading"></span> Menyimpan...';b.disabled=true;
+  const r=await api({action:'addPlacement',nip,divisi,
+    atasanNip:document.getElementById('pl-atasan').value,
+    dateStart:mulai,dateEnd:document.getElementById('pl-selesai').value,
+    alasan:document.getElementById('pl-alasan').value.trim()});
+  b.innerHTML='Simpan Penempatan';b.disabled=false;
+
+  if(!r.ok){pErr(r.error||'Gagal menyimpan');return;}
+  pOk(r.warning?('Tersimpan. ⚠️ '+r.warning):'Penempatan tersimpan.');
+  ['pl-mulai','pl-selesai','pl-alasan'].forEach(i=>document.getElementById(i).value='');
+  muatPenempatan();
+}
+
+function pErr(m){const e=document.getElementById('pl-err');e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',7000);}
+function pOk(m){const e=document.getElementById('pl-ok');e.innerHTML=m;e.style.display='block';setTimeout(()=>e.style.display='none',7000);}
+
+async function muatPenempatan(){
+  if(!EMP.length)await muatMaster();
+  const box=document.getElementById('tbl-penempatan');
+  box.innerHTML='<div class="empty">Memuat...</div>';
+  const r=await api({action:'getPlacements'});
+  if(!r.ok){box.innerHTML='<div class="alert alert-err">'+(r.error||'Gagal memuat')+'</div>';return;}
+  const rows=r.placements||[];
+  if(!rows.length){box.innerHTML='<div class="empty"><i>🔄</i>Belum ada penempatan tercatat.</div>';return;}
+  box.innerHTML='<table><tr><th>Nama</th><th>Dari</th><th>Ke</th><th>Mulai</th><th>Selesai</th><th class="num">Hari</th><th>Atasan</th><th>Status</th><th></th></tr>'+
+    rows.map(x=>{
+      const chip=x.status==='batal'?'<span class="chip chip-cancel">batal</span>'
+        :(x.berjalan?'<span class="chip chip-run">berjalan</span>':'<span class="chip chip-done">selesai</span>');
+      const aksi=x.status==='aktif'
+        ?'<button class="btn btn-sec btn-sm" onclick="akhiri('+x.id+')">Akhiri</button> '+
+         '<button class="btn btn-sec btn-sm" onclick="batalkan('+x.id+')">Batal</button>':'';
+      const pendek=x.durasi<3?' <span title="kurang dari 3 hari, tidak mengubah target" style="color:var(--muted)">·</span>':'';
+      return '<tr><td><b>'+x.nama+'</b><div style="font-size:11px;color:var(--muted)">'+(x.alasan||'')+'</div></td>'+
+        '<td style="font-size:12px">'+x.divisiAsal+'</td><td style="font-size:12px"><b>'+x.divisi+'</b></td>'+
+        '<td class="mono" style="font-size:12px">'+x.dateStart+'</td>'+
+        '<td class="mono" style="font-size:12px">'+(x.dateEnd||'—')+'</td>'+
+        '<td class="num">'+x.durasi+pendek+'</td>'+
+        '<td style="font-size:12px">'+(x.atasanNama||'—')+'</td>'+
+        '<td>'+chip+'</td><td style="white-space:nowrap">'+aksi+'</td></tr>';
+    }).join('')+'</table>';
+}
+
+async function akhiri(id){
+  const t=prompt('Tanggal selesai (YYYY-MM-DD), kosongkan untuk hari ini:', hariIni());
+  if(t===null)return;
+  const r=await api({action:'endPlacement',id,dateEnd:t.trim()||hariIni()});
+  if(!r.ok){pErr(r.error||'Gagal');return;}
+  pOk('Penempatan diakhiri pada '+r.dateEnd);muatPenempatan();
+}
+async function batalkan(id){
+  if(!confirm('Batalkan penempatan ini? Barisnya tetap tersimpan sebagai riwayat.'))return;
+  const r=await api({action:'cancelPlacement',id});
+  if(!r.ok){pErr(r.error||'Gagal');return;}
+  pOk('Penempatan dibatalkan.');muatPenempatan();
 }
 
 async function muat(){
