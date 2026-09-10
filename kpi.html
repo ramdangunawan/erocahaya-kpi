@@ -519,13 +519,37 @@ async function loadKendala(){
     box.innerHTML='<div class="empty"><span class="empty-icon">👍</span>Tidak ada kendala terbuka.</div>';
     return;
   }
-  box.innerHTML=list.map(i=>
-    '<div class="issue-card'+(i.mendesak?' mendesak':'')+'">'
-    +'<div class="issue-top"><div class="issue-text">'+i.issue+'</div>'
-    +'<div class="issue-umur'+(i.mendesak?' mendesak':'')+'">'+i.umurHari+' hari</div></div>'
-    +'<div class="issue-meta">'+(i.divisi||'')+' · dilaporkan '+i.dateOpened
-    +(i.assignedTo?' · perlu '+i.assignedTo:'')+'</div>'
-    +'</div>').join('');
+  const role=(session.role||'').toLowerCase();
+  const bolehAju=['koordinator','owner','hr','finance'].indexOf(role)!==-1;
+  const divisiSaya=(session.employee.penempatanAktif||session.employee.divisiBaku||'').toUpperCase();
+
+  box.innerHTML=list.map(i=>{
+    const cocok=bolehAju&&(role!=='koordinator'||String(i.divisi).toUpperCase()===divisiSaya);
+    const tombol=(cocok&&!i.menungguTutup)
+      ? '<button class="btn btn-sec btn-sm" style="margin-top:10px" onclick="ajukanTutup('+i.id+')">✓ Ajukan Tutup</button>'
+      : '';
+    const label=i.menungguTutup
+      ? '<div class="alert alert-info" style="margin:8px 0 0;padding:8px 10px;font-size:11px">⏳ Menunggu persetujuan owner atau HR'
+        +(i.ajuTutupNama?' · diajukan '+i.ajuTutupNama:'')+'</div>'
+      : '';
+    return '<div class="issue-card'+(i.mendesak?' mendesak':'')+'">'
+      +'<div class="issue-top"><div class="issue-text">'+i.issue+'</div>'
+      +'<div class="issue-umur'+(i.mendesak?' mendesak':'')+'">'+i.umurHari+' hari</div></div>'
+      +'<div class="issue-meta">'+(i.divisi||'')+' · dilaporkan '+i.dateOpened
+      +(i.pelaporNama?' oleh '+i.pelaporNama:'')
+      +(i.assignedTo?' · perlu '+i.assignedTo:'')+'</div>'
+      +label+tombol+'</div>';
+  }).join('');
+}
+
+async function ajukanTutup(id){
+  const catatan=prompt('Kendala ini sudah teratasi?\n\nJelaskan singkat apa yang sudah dilakukan:');
+  if(catatan===null)return;
+  if(!catatan.trim()){showA('issue-err','Catatan wajib diisi');return;}
+  const res=await apiCall({action:'ajukanTutup',id,catatan:catatan.trim()});
+  if(!res.ok){showA('issue-err',res.error||'Gagal mengajukan');return;}
+  showA('issue-ok',res.message||'Pengajuan terkirim.','ok');
+  loadKendala();
 }
 
 // ═══ INIT ═══

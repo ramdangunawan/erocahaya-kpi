@@ -401,7 +401,8 @@ function kartu(d){
     ['Laporan Masuk Hari Ini', d.laporanMasuk+' <span style="font-size:15px;color:var(--muted)">/ '+d.totalKaryawan+'</span>', pctLapor+'% karyawan melapor', ''],
     ['Menunggu Validasi', d.menungguValidasi, d.menungguValidasi>0?'perlu tindakan koordinator':'semua sudah diproses', d.menungguValidasi>0?'var(--amber)':'var(--accent2)'],
     ['Rata-rata Nilai', Number(d.rataNilai).toFixed(2), dinilai+' karyawan sudah punya target', ''],
-    ['Kendala Mendesak', d.kendalaMendesak, d.kendalaMendesak>0?'terbuka lebih dari 3 hari':'tidak ada yang menggantung', d.kendalaMendesak>0?'var(--red)':'var(--accent2)']
+    ['Kendala Mendesak', d.kendalaMendesak, d.kendalaMendesak>0?'terbuka lebih dari 3 hari':'tidak ada yang menggantung', d.kendalaMendesak>0?'var(--red)':'var(--accent2)'],
+    ['Menunggu Persetujuan', d.kendalaMenungguTutup||0, (d.kendalaMenungguTutup||0)>0?'koordinator mengajukan tutup':'tidak ada pengajuan', (d.kendalaMenungguTutup||0)>0?'var(--blue)':'var(--muted)']
   ].map(s=>'<div class="stat"><div class="stat-label">'+s[0]+'</div><div class="stat-val"'+(s[3]?' style="color:'+s[3]+'"':'')+'>'+s[1]+'</div><div class="stat-sub">'+s[2]+'</div></div>').join('');
 }
 
@@ -448,10 +449,39 @@ function daftarKendala(d){
   const rows=d.kendala||[];
   const box=document.getElementById('list-kendala');
   if(!rows.length){box.innerHTML='<div class="empty"><i>👍</i>Tidak ada kendala terbuka.</div>';return;}
-  box.innerHTML=rows.map(k=>'<div class="issue'+(k.mendesak?' urgent':'')+'"><div class="issue-h">'+
-    '<div><div class="issue-t">'+k.issue+'</div><div class="issue-m">'+(k.divisi||'—')+' · dilaporkan '+k.dateOpened+
-    (k.assignedTo?' · perlu '+k.assignedTo:' · belum ada PIC')+'</div></div>'+
-    '<div class="age'+(k.mendesak?' urgent':'')+'">'+k.umurHari+' hari</div></div></div>').join('');
+  box.innerHTML=rows.map(k=>{
+    const aksi=k.menungguTutup
+      ? '<div style="display:flex;gap:8px;margin-top:10px">'
+        +'<button class="btn btn-sec btn-sm" onclick="setujuiTutup('+k.id+')">✓ Setujui Tutup</button>'
+        +'<button class="btn btn-sec btn-sm" onclick="tolakTutup('+k.id+')">✕ Tolak</button></div>'
+      : '';
+    const info=k.menungguTutup
+      ? '<div style="background:#eff4ff;border:1px solid #c6d9f5;color:var(--blue);border-radius:8px;'
+        +'padding:8px 10px;font-size:12px;margin-top:8px">⏳ Diajukan tutup'
+        +(k.ajuTutupNama?' oleh <b>'+k.ajuTutupNama+'</b>':'')+(k.ajuTutupTgl?' pada '+k.ajuTutupTgl:'')
+        +(k.ajuTutupCatatan?'<br>«'+k.ajuTutupCatatan+'»':'')+'</div>'
+      : '';
+    return '<div class="issue'+(k.mendesak?' urgent':'')+'"><div class="issue-h">'+
+      '<div><div class="issue-t">'+k.issue+'</div><div class="issue-m">'+(k.divisi||'—')+' · dilaporkan '+k.dateOpened+
+      (k.pelaporNama?' oleh '+k.pelaporNama:'')+
+      (k.assignedTo?' · perlu '+k.assignedTo:' · belum ada PIC')+'</div></div>'+
+      '<div class="age'+(k.mendesak?' urgent':'')+'">'+k.umurHari+' hari</div></div>'+info+aksi+'</div>';
+  }).join('');
+}
+
+async function setujuiTutup(id){
+  if(!confirm('Setujui penutupan kendala ini?\n\nKPI yang dinetralkan akan dihitung normal kembali.'))return;
+  const r=await api({action:'setujuiTutup',id});
+  if(!r.ok){alert(r.error||'Gagal menyetujui');return;}
+  muat();
+}
+async function tolakTutup(id){
+  const alasan=prompt('Alasan menolak penutupan ini?');
+  if(alasan===null)return;
+  if(!alasan.trim()){alert('Alasan wajib diisi');return;}
+  const r=await api({action:'tolakTutup',id,alasan:alasan.trim()});
+  if(!r.ok){alert(r.error||'Gagal menolak');return;}
+  muat();
 }
 
 (function(){
