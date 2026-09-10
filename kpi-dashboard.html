@@ -501,7 +501,9 @@ function ringkasRiwayat(){
   const hitung={};
   RIWAYAT.forEach(k=>{const key=String(k.issue).toLowerCase().slice(0,25);hitung[key]=(hitung[key]||0)+1;});
   const berulang=Object.keys(hitung).filter(k=>hitung[k]>1).length;
+  const tanpaCatatan=RIWAYAT.filter(k=>!k.ajuTutupCatatan).length;
   box.innerHTML=RIWAYAT.length+' kendala selesai · rata-rata ditangani <b>'+rata.toFixed(1)+' hari</b>'
+    +(tanpaCatatan?' · <span style="color:var(--red)">'+tanpaCatatan+' tanpa catatan penanganan</span>':'')
     +(lambat?' · <span style="color:var(--amber)">'+lambat+' butuh lebih dari 7 hari</span>':'')
     +(berulang?' · <span style="color:var(--red)">'+berulang+' pola berulang</span>':'');
 }
@@ -516,14 +518,18 @@ function toggleRiwayat(){
 function tabelRiwayat(){
   const box=document.getElementById('tbl-riwayat');
   if(!RIWAYAT||!RIWAYAT.length){box.innerHTML='<div class="empty"><i>📁</i>Belum ada riwayat.</div>';return;}
-  box.innerHTML='<table><tr><th>Kendala</th><th>Divisi</th><th>Dilaporkan</th><th>Ditutup</th>'
+  box.innerHTML='<table><tr><th style="width:24%">Kendala</th><th style="width:30%">Penanganan</th>'
+    +'<th>Divisi</th><th>Dilaporkan</th><th>Ditutup</th>'
     +'<th class="num">Durasi</th><th>Diajukan</th><th>Disetujui</th></tr>'
     +RIWAYAT.map(k=>{
       const d=k.durasiPenanganan;
       const warna=d===null?'':(d>7?'color:var(--red)':(d>3?'color:var(--amber)':'color:var(--accent2)'));
-      return '<tr><td>'+k.issue
-        +(k.ajuTutupCatatan?'<div style="font-size:11px;color:var(--muted)">'+k.ajuTutupCatatan+'</div>':'')
-        +'</td><td style="font-size:12px">'+(k.divisi||'—')+'</td>'
+      const solusi=k.ajuTutupCatatan
+        ? '<span style="font-size:12.5px">'+k.ajuTutupCatatan+'</span>'
+        : '<span style="font-size:12px;color:var(--red)">— tidak dicatat —</span>';
+      return '<tr><td><b>'+k.issue+'</b></td>'
+        +'<td>'+solusi+'</td>'
+        +'<td style="font-size:12px">'+(k.divisi||'—')+'</td>'
         +'<td class="mono" style="font-size:12px">'+k.dateOpened+'</td>'
         +'<td class="mono" style="font-size:12px">'+(k.dateClosed||'—')+'</td>'
         +'<td class="num" style="'+warna+'">'+(d===null?'—':d+' hari')+'</td>'
@@ -533,8 +539,9 @@ function tabelRiwayat(){
 }
 
 async function setujuiTutup(id){
-  if(!confirm('Setujui penutupan kendala ini?\n\nKPI yang dinetralkan akan dihitung normal kembali.'))return;
-  const r=await api({action:'setujuiTutup',id});
+  const c=prompt('Setujui penutupan kendala ini?\n\nCatatan tambahan (boleh dikosongkan):','');
+  if(c===null)return;
+  const r=await api({action:'setujuiTutup',id,catatan:c.trim()});
   if(!r.ok){alert(r.error||'Gagal menyetujui');return;}
   muat();
 }
