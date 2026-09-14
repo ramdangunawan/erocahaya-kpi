@@ -72,6 +72,12 @@ td{padding:11px 8px;border-top:1px solid var(--border)}
 .tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:16px;max-width:420px}
 .tabbtn{flex:1;padding:11px;background:none;border:none;border-radius:8px;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer}
 .tabbtn.active{background:var(--accent);color:#fff}
+.tab-badge{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px;font-family:'JetBrains Mono',monospace;margin-left:5px}
+.rowclick{cursor:pointer}
+.rowclick:hover{background:var(--surface2)}
+.detil{background:var(--surface2)}
+.detil td{padding:0}
+.detil-box{padding:14px 16px}
 .formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:6px}
 .chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;display:inline-block}
 .chip-run{background:#d9f0e3;color:#1a6b42}
@@ -140,6 +146,7 @@ td{padding:11px 8px;border-top:1px solid var(--border)}
 
   <div class="tabs">
     <button class="tabbtn active" id="tb-kinerja" onclick="tab('kinerja')">📊 Kinerja</button>
+    <button class="tabbtn" id="tb-validasi" onclick="tab('validasi')">✅ Validasi <span class="tab-badge" id="badge-val" style="display:none">0</span></button>
     <button class="tabbtn" id="tb-penempatan" onclick="tab('penempatan')">🔄 Penempatan</button>
   </div>
 
@@ -178,6 +185,16 @@ td{padding:11px 8px;border-top:1px solid var(--border)}
     <div id="riwayat-ringkas" style="font-size:12px;color:var(--dim);margin-bottom:10px"></div>
     <div class="scroll" id="tbl-riwayat" style="display:none"></div>
   </div>
+  </div>
+
+  <div id="view-validasi" style="display:none">
+    <div class="alert alert-info">
+      Sebagai owner Anda bisa memvalidasi laporan seluruh divisi. Laporan Anda sendiri tetap tidak bisa divalidasi sendiri.
+      Laporan yang belum disetujui <b>tidak dihitung</b> dalam nilai KPI.
+    </div>
+    <div class="alert alert-err" id="val-err" style="display:none"></div>
+    <div class="alert alert-info" id="val-ok" style="display:none"></div>
+    <div class="card"><div id="list-validasi"></div></div>
   </div>
 
   <div id="view-penempatan" style="display:none">
@@ -279,11 +296,124 @@ function masuk(){
 let EMP=[], DIV=[];
 
 function tab(t){
-  ['kinerja','penempatan'].forEach(x=>{
+  ['kinerja','validasi','penempatan'].forEach(x=>{
     document.getElementById('tb-'+x).classList.toggle('active',x===t);
     document.getElementById('view-'+x).style.display=(x===t?'block':'none');
   });
   if(t==='penempatan')muatPenempatan();
+  if(t==='validasi')muatValidasi();
+}
+
+// ═══ VALIDASI ═══
+async function muatValidasi(){
+  const box=document.getElementById('list-validasi');
+  box.innerHTML='<div class="empty">Memuat...</div>';
+  const r=await api({action:'getPending'});
+  if(!r.ok){box.innerHTML='<div class="alert alert-err">'+(r.error||'Gagal memuat')+'</div>';return;}
+  const list=r.pending||[];
+  const b=document.getElementById('badge-val');
+  b.textContent=list.length; b.style.display=list.length?'inline-block':'none';
+  if(!list.length){box.innerHTML='<div class="empty"><i>✅</i>Tidak ada laporan menunggu validasi.</div>';return;}
+
+  // Kelompokkan per karyawan supaya mudah diproses berurutan
+  const per={};
+  list.forEach(x=>{const k=x.nip;if(!per[k])per[k]={nama:x.nama,divisi:x.divisi,item:[]};per[k].item.push(x);});
+
+  box.innerHTML=Object.keys(per).map(nip=>{
+    const g=per[nip];
+    return '<div style="margin-bottom:18px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">'
+      +'<div><b style="font-size:15px">'+g.nama+'</b> <span style="font-size:11px;color:var(--muted)">'+(g.divisi||'')+'</span></div>'
+      +'<button class="btn btn-sec btn-sm" onclick="setujuiSemua(\''+nip+'\')">Setujui semua ('+g.item.length+')</button></div>'
+      +'<table><tr><th>Tanggal</th><th>KPI</th><th class="num">Nilai</th><th>Catatan</th><th></th></tr>'
+      +g.item.map(x=>'<tr id="val-'+x.id+'">'
+        +'<td class="mono" style="font-size:12px">'+x.date
+        +(x.susulan?'<div class="age urgent" style="display:inline-block;margin-left:4px">susulan '+x.umurHari+'h</div>':'')+'</td>'
+        +'<td>'+x.kpi+'</td>'
+        +'<td class="num">'+n0(x.value)+' <span style="font-size:11px;color:var(--muted)">'+(x.satuan||'')+'</span></td>'
+        +'<td style="font-size:12px;color:var(--dim)">'+(x.note||'—')+'</td>'
+        +'<td style="white-space:nowrap">'
+        +'<button class="btn btn-sec btn-sm" onclick="setujuiLap('+x.id+')">✓</button> '
+        +'<button class="btn btn-sec btn-sm" onclick="tolakLap('+x.id+')">✕</button></td></tr>').join('')
+      +'</table></div>';
+  }).join('');
+}
+
+async function setujuiLap(id){
+  const r=await api({action:'approveReport',id});
+  if(!r.ok){vErr(r.error||'Gagal');return;}
+  const el=document.getElementById('val-'+id); if(el)el.remove();
+  vOk('Laporan disetujui.'); muatValidasi();
+}
+async function tolakLap(id){
+  const alasan=prompt('Alasan menolak laporan ini?');
+  if(alasan===null)return;
+  if(!alasan.trim()){vErr('Alasan wajib diisi');return;}
+  const r=await api({action:'rejectReport',id,reason:alasan.trim()});
+  if(!r.ok){vErr(r.error||'Gagal');return;}
+  vOk('Laporan ditolak.'); muatValidasi();
+}
+async function setujuiSemua(nip){
+  const r=await api({action:'getPending'});
+  if(!r.ok)return;
+  const item=(r.pending||[]).filter(x=>String(x.nip)===String(nip));
+  if(!item.length)return;
+  if(!confirm('Setujui '+item.length+' laporan dari '+item[0].nama+'?'))return;
+  let ok=0,gagal=0;
+  for(const x of item){
+    const h=await api({action:'approveReport',id:x.id});
+    if(h.ok)ok++;else gagal++;
+  }
+  vOk(ok+' laporan disetujui'+(gagal?', '+gagal+' gagal':'')+'.');
+  muatValidasi();
+}
+function vErr(m){const e=document.getElementById('val-err');e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',6000);}
+function vOk(m){const e=document.getElementById('val-ok');e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',5000);}
+
+// ═══ RINCIAN PENCAPAIAN PER KARYAWAN ═══
+let detilBuka=null;
+
+async function bukaDetil(nip){
+  const baris=document.getElementById('detil-'+nip);
+  if(detilBuka===nip){ baris.remove(); detilBuka=null; return; }
+  if(detilBuka){const l=document.getElementById('detil-'+detilBuka); if(l)l.remove();}
+  detilBuka=nip;
+
+  const tr=document.getElementById('row-'+nip);
+  const nb=document.createElement('tr');
+  nb.id='detil-'+nip; nb.className='detil';
+  nb.innerHTML='<td colspan="8"><div class="detil-box">Memuat rincian...</div></td>';
+  tr.parentNode.insertBefore(nb,tr.nextSibling);
+
+  const periode=document.getElementById('in-periode').value||bulanIni();
+  const d=await api({action:'getDetail',nip,periode});
+  if(!d.ok){nb.innerHTML='<td colspan="8"><div class="detil-box">'+(d.error||'Gagal')+'</div></td>';return;}
+
+  const rows=(d.detail||[]).map(k=>{
+    const dikecualikan=k.dikecualikan==='KENDALA'||k.dikecualikan==='ROLLING';
+    const ket=k.dikecualikan==='KENDALA'?'dikecualikan — ada kendala terbuka'
+             :(k.dikecualikan==='ROLLING'?'dikecualikan — dirolling ke divisi lain':'');
+    const porsi=k.porsi<1?' <span style="color:var(--amber)">('+Math.round(k.porsi*100)+'% porsi)</span>':'';
+    return '<tr'+(dikecualikan?' style="opacity:.55"':'')+'>'
+      +'<td><b>'+k.namaKpi+'</b><div style="font-size:11px;color:var(--muted)">'+k.kode
+      +' · '+k.jumlahLaporan+' laporan disetujui'+(ket?' · '+ket:'')+'</div></td>'
+      +'<td class="num">'+Math.round(k.bobot*100)+'%</td>'
+      +'<td class="num">'+n0(k.target)+' <span style="font-size:11px;color:var(--muted)">'+(k.satuan||'')+'</span>'+porsi+'</td>'
+      +'<td class="num">'+n0(k.realisasi)+'</td>'
+      +'<td class="num">'+(k.pencapaian===null?'—':Math.round(k.pencapaian*100)+'%')+'</td>'
+      +'<td class="num"><b>'+(k.skor===null?'—':k.skor)+'</b></td>'
+      +'<td class="num">'+(k.nilai===null?'—':k.nilai.toFixed(2))+'</td></tr>';
+  }).join('');
+
+  nb.innerHTML='<td colspan="8"><div class="detil-box">'
+    +'<div style="font-size:13px;margin-bottom:10px">Rincian <b>'+d.nama+'</b> · periode '+d.periode
+    +(d.dikecualikan?' · <span style="color:var(--amber)">'+d.dikecualikan+' KPI dikecualikan</span>':'')+'</div>'
+    +'<table><tr><th>KPI</th><th class="num">Bobot</th><th class="num">Target</th>'
+    +'<th class="num">Realisasi</th><th class="num">Capai</th><th class="num">Skor</th><th class="num">Nilai</th></tr>'
+    +rows
+    +'<tr style="border-top:2px solid var(--border)"><td colspan="6" style="text-align:right"><b>Nilai akhir</b></td>'
+    +'<td class="num"><b style="font-size:15px">'+d.nilaiAkhir.toFixed(2)+'</b></td></tr>'
+    +'</table></div></td>';
 }
 
 async function muatMaster(){
@@ -391,6 +521,9 @@ async function muat(){
   tabelKaryawan(d);
   daftarKendala(d);
   muatRiwayat();
+  const bv=document.getElementById('badge-val');
+  bv.textContent=d.menungguValidasi||0;
+  bv.style.display=(d.menungguValidasi||0)?'inline-block':'none';
 }
 
 // Peringatan agar nilai awal bulan tidak disalahartikan
@@ -412,7 +545,8 @@ function kartu(d){
   document.getElementById('stats').innerHTML=[
     ['Laporan Masuk Hari Ini', d.laporanMasuk+' <span style="font-size:15px;color:var(--muted)">/ '+d.totalKaryawan+'</span>', pctLapor+'% karyawan melapor', ''],
     ['Menunggu Validasi', d.menungguValidasi, d.menungguValidasi>0?'perlu tindakan koordinator':'semua sudah diproses', d.menungguValidasi>0?'var(--amber)':'var(--accent2)'],
-    ['Rata-rata Nilai', Number(d.rataNilai).toFixed(2), dinilai+' karyawan sudah punya target', ''],
+    ['Rata-rata Nilai', Number(d.rataNilai).toFixed(2),
+     (d.jumlahDinilai||0)+' dinilai'+((d.jumlahBelumLengkap||0)?' · '+d.jumlahBelumLengkap+' KPI belum lengkap':''), ''],
     ['Kendala Mendesak', d.kendalaMendesak, d.kendalaMendesak>0?'terbuka lebih dari 3 hari':'tidak ada yang menggantung', d.kendalaMendesak>0?'var(--red)':'var(--accent2)'],
     ['Menunggu Persetujuan', d.kendalaMenungguTutup||0, (d.kendalaMenungguTutup||0)>0?'koordinator mengajukan tutup':'tidak ada pengajuan', (d.kendalaMenungguTutup||0)>0?'var(--blue)':'var(--muted)']
   ].map(s=>'<div class="stat"><div class="stat-label">'+s[0]+'</div><div class="stat-val"'+(s[3]?' style="color:'+s[3]+'"':'')+'>'+s[1]+'</div><div class="stat-sub">'+s[2]+'</div></div>').join('');
@@ -447,14 +581,48 @@ function tabelKaryawan(d){
   const rows=d.karyawan||[];
   const box=document.getElementById('tbl-karyawan');
   if(!rows.length){box.innerHTML='<div class="empty"><i>👥</i>Belum ada karyawan yang punya target pada periode ini.<br>Isi sheet KpiTargets terlebih dahulu.</div>';return;}
-  box.innerHTML='<table><tr><th>NIP</th><th>Nama</th><th>Divisi</th><th class="num">KPI</th><th class="num">Bobot</th><th class="num">Nilai</th><th>Grade</th><th>Tindak Lanjut</th></tr>'+
-    rows.map(r=>{
-      const bobotOk=Math.round(r.totalBobot*100)===100;
-      return '<tr><td class="mono" style="font-size:12px">'+r.nip+'</td><td><b>'+r.nama+'</b></td><td style="font-size:12px;color:var(--dim)">'+(r.divisi||'—')+
-      '</td><td class="num">'+r.jumlahKpi+'</td><td class="num"'+(bobotOk?'':' style="color:var(--red)"')+'>'+Math.round(r.totalBobot*100)+'%'+(bobotOk?'':' ⚠')+
-      '</td><td class="num" style="font-size:15px">'+r.nilaiAkhir.toFixed(2)+'</td><td><span class="badge g-'+r.grade+'">'+r.grade+'</span></td>'+
-      '<td style="font-size:12px;color:var(--dim)">'+r.tindakLanjut+'</td></tr>';
-    }).join('')+'</table>';
+  const lengkap=rows.filter(r=>r.lengkap);
+  const belum=rows.filter(r=>!r.lengkap);
+
+  let html='';
+  if(belum.length){
+    html+='<div class="alert alert-info" style="margin-bottom:12px">'
+      +'<b>'+lengkap.length+'</b> karyawan sudah dinilai. <b>'+belum.length+'</b> lainnya belum — '
+      +'KPI divisinya belum disusun, jadi <b>tidak diberi grade</b>. '
+      +'Nilai nol pada mereka berarti belum ada data, bukan kinerja buruk.</div>';
+  }
+
+  const baris=r=>{
+    if(!r.lengkap){
+      return '<tr style="opacity:.55"><td class="mono" style="font-size:12px">'+r.nip+'</td>'
+        +'<td>'+r.nama+'</td><td style="font-size:12px;color:var(--dim)">'+(r.divisi||'—')+'</td>'
+        +'<td class="num">'+r.jumlahKpi+'</td>'
+        +'<td class="num" style="color:var(--amber)">'+Math.round(r.totalBobot*100)+'%</td>'
+        +'<td class="num" style="color:var(--muted)">—</td>'
+        +'<td><span class="badge" style="background:#eee;color:#777">belum</span></td>'
+        +'<td style="font-size:12px;color:var(--muted)">'+r.tindakLanjut+'</td></tr>';
+    }
+    return '<tr class="rowclick" id="row-'+r.nip+'" onclick="bukaDetil(\''+r.nip+'\')">'
+      +'<td class="mono" style="font-size:12px">'+r.nip+'</td><td><b>'+r.nama+'</b> <span style="font-size:11px;color:var(--muted)">▾</span></td>'
+      +'<td style="font-size:12px;color:var(--dim)">'+(r.divisi||'—')+'</td>'
+      +'<td class="num">'+r.jumlahKpi+'</td>'
+      +'<td class="num">'+Math.round(r.totalBobot*100)+'%</td>'
+      +'<td class="num" style="font-size:15px">'+r.nilaiAkhir.toFixed(2)+'</td>'
+      +'<td><span class="badge g-'+r.grade+'">'+r.grade+'</span></td>'
+      +'<td style="font-size:12px;color:var(--dim)">'+r.tindakLanjut+'</td></tr>';
+  };
+
+  html+='<table><tr><th>NIP</th><th>Nama</th><th>Divisi</th><th class="num">KPI</th>'
+    +'<th class="num">Bobot</th><th class="num">Nilai</th><th>Grade</th><th>Tindak Lanjut</th></tr>'
+    +lengkap.map(baris).join('');
+
+  if(belum.length){
+    html+='<tr><td colspan="8" style="padding-top:16px;font-size:11px;color:var(--muted);'
+      +'text-transform:uppercase;letter-spacing:.6px;font-weight:700;border-top:2px solid var(--border)">'
+      +'Belum dinilai — KPI divisi belum disusun</td></tr>'
+      +belum.map(baris).join('');
+  }
+  box.innerHTML=html+'</table>';
 }
 
 function daftarKendala(d){
